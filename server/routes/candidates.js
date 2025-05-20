@@ -1,21 +1,26 @@
-const express = require('express');
 const router = express.Router();
-
-// Temporary in-memory storage
-let candidates = [
-  { id: 1, name: "John Doe", branch: "JB", status: "Applied" }
-];
+const pool = require('../models/db');
 
 // GET all candidates
-router.get('/', (req, res) => {
-  res.json(candidates);
+router.get('/', async (req, res) => {
+  try {
+    const { rows } = await pool.query('SELECT * FROM candidates');
+    res.json(rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // POST new candidate
-router.post('/', (req, res) => {
-  const newCandidate = req.body;
-  candidates.push(newCandidate);
-  res.status(201).json(newCandidate);
+router.post('/', async (req, res) => {
+  const { name, branch, status } = req.body;
+  try {
+    const { rows } = await pool.query(
+      'INSERT INTO candidates (name, branch, status) VALUES ($1, $2, $3) RETURNING *',
+      [name, branch, status]
+    );
+    res.status(201).json(rows[0]);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
 });
-
-module.exports = router;
